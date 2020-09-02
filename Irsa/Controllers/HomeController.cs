@@ -1,23 +1,22 @@
-﻿using System;
+﻿using Components.Irsa;
+using Irsa.Components.Soap;
+using Irsa.Configs;
+using Irsa.Models;
+using Irsa.Repository.Wrapper;
+using Irsa.XMLModels.Login_Travel_Agent_Request;
+using Irsa.XMLModels.Retrieve_Agency_Commission_Request;
+using Irsa.XMLModels.Retrieve_Security_Token_Request;
+using Irsa.XMLModels.Retrieve_Security_Token_Response;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Irsa.Models;
-using Components.Irsa;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net.Http;
-using Irsa.Repository.Wrapper;
-using Microsoft.Extensions.Caching.Memory;
-using Irsa.Configs;
-using Irsa.Components.Soap;
-using Irsa.XMLModels;
 using System.Xml.Serialization;
-using System.IO;
-using System.Xml;
 
 namespace Irsa.Controllers
 {
@@ -29,6 +28,7 @@ namespace Irsa.Controllers
         private readonly IXmlService _xmlService;
         private readonly IMemoryCache _memoryCache;
         private readonly IManualLog _manualLog;
+        Classes obj = new Classes();
 
         public HomeController(ILogger<HomeController> logger,
                              IRepositoryWrapper RepositoryWrapper,
@@ -45,6 +45,7 @@ namespace Irsa.Controllers
             _repositoryWrapper = RepositoryWrapper;
             _memoryCache = MemoryCache;
             _manualLog = ManualLog;
+
         }
 
         public IActionResult index()
@@ -484,54 +485,6 @@ namespace Irsa.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> SecurityToken()
-        {
-
-            var param = new Retrieve_Security_Token()
-            {
-                Header = new Header()
-                {
-                },
-                Body = new Body()
-                {
-                    RetrieveSecurityToken = new RetrieveSecurityToken()
-                    {
-                        RetrieveSecurityTokenRequest = new RetrieveSecurityTokenRequest()
-                        {
-                            CarrierCodes = new CarrierCodes()
-                            {
-                                CarrierCode = new CarrierCode()
-                                {
-                                    AccessibleCarrierCode = "OV"
-                                }
-                            },
-                            LogonID = "IRAN_OV_U",
-                            Password = "IAT$UAT!"
-                        }
-                    }
-                }
-            };
-
-
-            XmlSerializer xsSubmit = new XmlSerializer(typeof(Retrieve_Security_Token));
-            var xml = "";
-
-            using (var sww = new StringWriter())
-            {
-                using (XmlWriter writer = XmlWriter.Create(sww))
-                {
-                    xsSubmit.Serialize(writer, param);
-                    xml = sww.ToString(); // Your XML
-                }
-            }
-
-
-            var Result = await _xmlService.PostXml(@"http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.Security.svc/", xml);
-            return null;
-        }
-
-
-        [HttpGet]
         public async Task<IActionResult> GetBaggages()
         {
 
@@ -561,5 +514,153 @@ namespace Irsa.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+
+
+
+        //call from web services
+        [HttpGet]
+        public async Task<IActionResult> RetrieveSecurityToken()
+        {
+
+            var param = new Retrieve_Security_Token_Request()
+            {
+                Header = new XMLModels.Retrieve_Security_Token_Request.Header()
+                {
+                },
+                Body = new XMLModels.Retrieve_Security_Token_Request.Body()
+                {
+                    RetrieveSecurityToken = new RetrieveSecurityToken()
+                    {
+                        RetrieveSecurityTokenRequest = new RetrieveSecurityTokenRequest()
+                        {
+                            CarrierCodes = new XMLModels.Retrieve_Security_Token_Request.CarrierCodes()
+                            {
+                                CarrierCode = new XMLModels.Retrieve_Security_Token_Request.CarrierCode()
+                                {
+                                    AccessibleCarrierCode = "OV"
+                                }
+                            },
+                            LogonID = "IRAN_OV_U",
+                            Password = "IAT$UAT!"
+                        }
+                    }
+                }
+            };
+
+
+
+            var xmlBody = obj.GenerateXmlBody<Retrieve_Security_Token_Request>(param);
+
+
+            var Result = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.Security.svc",
+                                                          xmlBody,
+                                                          "http://tempuri.org/IConnectPoint_Security/RetrieveSecurityToken");
+
+            Retrieve_Security_Token_Response response = obj.DeserializeXmlToClass<Retrieve_Security_Token_Response>(Result);
+
+            return Json(new { success = true, responseText = JsonConvert.SerializeObject(response.Body.RetrieveSecurityTokenResponse.RetrieveSecurityTokenResult.SecurityToken) });
+
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> LoginTravelAgent(LoginTravelAgentRequest LTAR)
+        {
+
+            var param = new Login_Travel_Agent_Request()
+            {
+                Header = new XMLModels.Login_Travel_Agent_Request.Header()
+                {
+                },
+                Body = new XMLModels.Login_Travel_Agent_Request.Body()
+                {
+                    LoginTravelAgent = new LoginTravelAgent()
+                    {
+                        LoginTravelAgentRequest = new LoginTravelAgentRequest()
+                        {
+                            SecurityGUID = LTAR.SecurityGUID,
+                            CarrierCodes = new XMLModels.Login_Travel_Agent_Request.CarrierCodes()
+                            {
+                                CarrierCode = new XMLModels.Login_Travel_Agent_Request.CarrierCode()
+                                {
+                                    AccessibleCarrierCode = "OV"
+                                }
+                            },
+                            ClientIPAddress = "127.0.0.1",
+                            HistoricUserName = "ota_irsaaseman",
+                            IATANumber= "OTAIRN03",
+                            UserName= "ota_irsaaseman",
+                            Password= "Confirm@1234"
+                        }
+                    }
+                }
+            };
+
+
+
+            var xmlBody = obj.GenerateXmlBody<Login_Travel_Agent_Request>(param);
+
+
+            var Result = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.TravelAgents.svc",
+                                                          xmlBody,
+                                                          "http://tempuri.org/IConnectPoint_TravelAgents/LoginTravelAgent");
+
+
+
+            return Json(new { success = true, responseText = Result });
+
+        }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> RetrieveAgencyCommission(RetrieveAgencyCommissionRequest LTAR)
+        {
+
+            var param = new Retrieve_Agency_Commission_Request()
+            {
+                Header = new XMLModels.Retrieve_Agency_Commission_Request.Header()
+                {
+                },
+                Body = new XMLModels.Retrieve_Agency_Commission_Request.Body()
+                {
+                    RetrieveAgencyCommission = new RetrieveAgencyCommission()
+                    {
+                        RetrieveAgencyCommissionRequest = new RetrieveAgencyCommissionRequest()
+                        {
+                            SecurityGUID = LTAR.SecurityGUID,
+                            CarrierCodes = new XMLModels.Retrieve_Agency_Commission_Request.CarrierCodes()
+                            {
+                                CarrierCode = new XMLModels.Retrieve_Agency_Commission_Request.CarrierCode()
+                                {
+                                    AccessibleCarrierCode = "OV"
+                                }
+                            },
+                            ClientIPAddress = "127.0.0.1",
+                            HistoricUserName = "ota_irsaaseman",
+                            CurrencyCode = "IRR"
+                        }
+                    }
+                }
+            };
+
+
+
+            var xmlBody = obj.GenerateXmlBody<Retrieve_Agency_Commission_Request>(param);
+
+
+            var Result = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.TravelAgents.svc",
+                                                          xmlBody,
+                                                          "http://tempuri.org/IConnectPoint_TravelAgents/RetrieveAgencyCommission");
+
+
+
+            return Json(new { success = true, responseText = Result });
+
+        }
+
+
+
     }
 }

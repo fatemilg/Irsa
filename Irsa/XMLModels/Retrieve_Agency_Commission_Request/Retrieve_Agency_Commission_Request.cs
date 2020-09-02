@@ -4,31 +4,31 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace Irsa.XMLModels
+namespace Irsa.XMLModels.Retrieve_Agency_Commission_Request
 {
+
     public class NameSpaceList
     {
         public const string soapenv = "http://schemas.xmlsoap.org/soap/envelope/";
         public const string rad = "http://schemas.datacontract.org/2004/07/Radixx.ConnectPoint.Request";
-        public const string radl = "http://schemas.datacontract.org/2004/07/Radixx.ConnectPoint.Security.Request";
+        public const string radl = "http://schemas.datacontract.org/2004/07/Radixx.ConnectPoint.TravelAgents.Request";
         public const string tem = "http://tempuri.org/";
-
 
     }
 
     [XmlRoot(ElementName = "Envelope", Namespace = NameSpaceList.soapenv)]
-    public class Retrieve_Security_Token
+    public class Retrieve_Agency_Commission_Request
     {
         [XmlNamespaceDeclarations]
         public XmlSerializerNamespaces Namespaces = new XmlSerializerNamespaces();
-    
+
         [XmlElement(ElementName = "Header", Namespace = NameSpaceList.soapenv)]
         public Header Header { get; set; }
         [XmlElement(ElementName = "Body", Namespace = NameSpaceList.soapenv)]
         public Body Body { get; set; }
 
 
-        public Retrieve_Security_Token()
+        public Retrieve_Agency_Commission_Request()
         {
 
             Namespaces.Add("soapenv", NameSpaceList.soapenv);
@@ -49,31 +49,39 @@ namespace Irsa.XMLModels
     [XmlRoot(ElementName = "Body", Namespace = NameSpaceList.soapenv)]
     public class Body
     {
-        [XmlElement(ElementName = "RetrieveSecurityToken", Namespace = NameSpaceList.tem)]
-        public RetrieveSecurityToken RetrieveSecurityToken { get; set; }
+        [XmlElement(ElementName = "RetrieveAgencyCommission", Namespace = NameSpaceList.tem)]
+        public RetrieveAgencyCommission RetrieveAgencyCommission { get; set; }
     }
 
 
-    [XmlRoot(ElementName = "RetrieveSecurityToken", Namespace = NameSpaceList.tem)]
-    public class RetrieveSecurityToken
+    [XmlRoot(ElementName = "RetrieveAgencyCommission", Namespace = NameSpaceList.tem)]
+    public class RetrieveAgencyCommission
     {
-        [XmlElement(ElementName = "RetrieveSecurityTokenRequest", Namespace = NameSpaceList.tem)]
-        public RetrieveSecurityTokenRequest RetrieveSecurityTokenRequest { get; set; }
+        [XmlElement(ElementName = "RetrieveAgencyCommissionRequest", Namespace = NameSpaceList.tem)]
+        public RetrieveAgencyCommissionRequest RetrieveAgencyCommissionRequest { get; set; }
     }
 
 
-    [XmlRoot(ElementName = "RetrieveSecurityTokenRequest", Namespace = NameSpaceList.tem)]
-    public class RetrieveSecurityTokenRequest
+    [XmlRoot(ElementName = "RetrieveAgencyCommissionRequest", Namespace = NameSpaceList.tem)]
+    public class RetrieveAgencyCommissionRequest
     {
+        [XmlElement(ElementName = "SecurityGUID", Namespace = NameSpaceList.rad)]
+        public string SecurityGUID { get; set; }
+
         [XmlElement(ElementName = "CarrierCodes", Namespace = NameSpaceList.rad)]
         public CarrierCodes CarrierCodes { get; set; }
 
+        [XmlElement(ElementName = "ClientIPAddress", Namespace = NameSpaceList.rad)]
+        public string ClientIPAddress { get; set; }
 
-        [XmlElement(ElementName = "LogonID", Namespace = NameSpaceList.radl)]
-        public string LogonID { get; set; }
+        [XmlElement(ElementName = "HistoricUserName", Namespace = NameSpaceList.rad)]
+        public string HistoricUserName { get; set; }
 
-        [XmlElement(ElementName = "Password", Namespace = NameSpaceList.radl)]
-        public string Password { get; set; }
+
+        [XmlElement(ElementName = "CurrencyCode", Namespace = NameSpaceList.radl)]
+        public string CurrencyCode { get; set; }
+
+
     }
 
 
@@ -96,3 +104,4 @@ namespace Irsa.XMLModels
 
 
 }
+

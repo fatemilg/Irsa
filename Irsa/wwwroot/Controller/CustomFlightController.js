@@ -369,14 +369,52 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
         $('#ModalFareFamily').modal('hide');
     };
 
-    $scope.SecurityToken = function () {
+
+
+    //call from salam air web services
+    $scope.RetrieveSecurityToken = function () {
         $http({
             method: 'Get',
-            url: '/Home/SecurityToken',
+            url: '/Home/RetrieveSecurityToken',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 
         }).then(function mySuccess(response) {
             $scope.SecurityToken = JSON.parse(response.data.responseText);
+            $scope.GetLoginTravelAgent();
+            $scope.GetRetrieveAgencyCommission();
+        }, function myError(response) {
+            alert('by');
+        });
+    };
+
+    $scope.GetLoginTravelAgent = function () {
+        var param = {
+            SecurityGUID : $scope.SecurityToken
+        }
+        $http({
+            method: 'Post',
+            url: '/Home/LoginTravelAgent',
+            data: Object.toparams(param),
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+
+        }).then(function mySuccess(response) {
+            $scope.LoginTravelAgent = JSON.parse(response.data.responseText);
+        }, function myError(response) {
+            alert('by');
+        });
+    };
+    $scope.GetRetrieveAgencyCommission = function () {
+        var param = {
+            SecurityGUID: $scope.SecurityToken
+        }
+        $http({
+            method: 'Post',
+            url: '/Home/RetrieveAgencyCommission',
+            data: Object.toparams(param),
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+
+        }).then(function mySuccess(response) {
+            $scope.RetrieveAgencyCommission = JSON.parse(response.data.responseText);
         }, function myError(response) {
             alert('by');
         });
@@ -384,5 +422,5 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
 
     $scope.fillAirports();
     $scope.GetBaggages();
-    $scope.SecurityToken();
+    $scope.RetrieveSecurityToken();
 });
