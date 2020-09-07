@@ -37,5 +37,7 @@ namespace Irsa.Models
 
         public string FlightType { get; set; }
 
+        public string SecurityGUID { get; set; }
+
     }
 }

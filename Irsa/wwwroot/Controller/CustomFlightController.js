@@ -91,7 +91,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
     };
 
     $scope.SelectSeat = function (_RowSeatAmount, _RowNumber, _ColumnName) {
-  
+
 
         var param = {
             RowNumber: _RowNumber,
@@ -107,13 +107,55 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
     };
 
 
-    $scope.search = function (param) {
+    $scope.search = function () {
         ngProgress.start();
+        //param.SecurityGUID = $scope.SecurityToken;
+        var _TravelerAvail = {
+            AdultCount: $scope.flight.AdultCount,
+            ChildCount: $scope.flight.ChildCount,
+            InfantCount: $scope.flight.InfantCount
+        }
+        var _AirItineraries = [];
+        var rout1 = {
+            DepartureDate: $scope.flight.GoDate,
+            Origin: $scope.flight.Origin,
+            Destination: $scope.flight.Destination,
+            ConnectionID: 0,
+            AllAirportsDestination: true,
+            AllAirportsOrigin: true
+
+        }
+        _AirItineraries.push(rout1);
+
+        if ($scope.flight.FlightType == "RoundTrip") {
+
+            var rout2 = {
+                DepartureDate: $scope.flight.BackDate,
+                Origin: $scope.flight.Destination,
+                Destination: $scope.flight.Origin,
+                ConnectionID: 1,
+                AllAirportsDestination: true,
+                AllAirportsOrigin: true
+
+            }
+            _AirItineraries.push(rout2);
+
+        }
+ 
+
+        var param = {
+            TravelerAvail: _TravelerAvail,
+            AirItineraries: _AirItineraries,
+            FlightType: $scope.flight.FlightType,
+            SecurityGUID : $scope.SecurityToken
+        }
+
+        
         $http({
             method: 'POST',
             url: '/Home/ManualFlightSearch',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            data: Object.toparams(param)
+            headers: { 'Content-Type': 'application/json' },
+            params: { obj: JSON.stringify(param) },
         }).then(function mySuccess(response) {
             if (response.data.success === false) {
                 alert(response.data.responseText);
@@ -152,7 +194,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
 
     $scope.ShowFlightDetaillModal = function (_item) {
         $scope.Legs = _item.Legs;
-        $('#ModalFlightDetail').modal('show');
+        $('#ModalLegs').modal('show');
     };
     $scope.ShowPriceDetaillModal = function (_item) {
         $scope.Fares = _item;
@@ -245,7 +287,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
         });
     };
 
-   
+
 
     $scope.AddToCart = function () {
         var param = {
@@ -356,14 +398,14 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
 
     };
     $scope.SetColorRowFarFamily = function (_item) {
-        if (_item ==='INCLUDE') {
+        if (_item === 'INCLUDE') {
             return { color: "green" };
         }
         if (_item !== 'INCLUDE') {
             return { color: "red" };
         }
-     };
-    $scope.SelectFareFamily = function (_fareAmount,_fareFamilyID) {
+    };
+    $scope.SelectFareFamily = function (_fareAmount, _fareFamilyID) {
         $scope.FinalPriceDetaill.TotalFareAmout += _fareAmount;
         $scope.GetPriceDetailWithExtraService(_fareFamilyID);
         $('#ModalFareFamily').modal('hide');
@@ -389,7 +431,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
 
     $scope.GetLoginTravelAgent = function () {
         var param = {
-            SecurityGUID : $scope.SecurityToken
+            SecurityGUID: $scope.SecurityToken
         }
         $http({
             method: 'Post',
@@ -398,7 +440,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 
         }).then(function mySuccess(response) {
-            $scope.LoginTravelAgent = JSON.parse(response.data.responseText);
+            //$scope.LoginTravelAgent = JSON.parse(response.data.responseText);
         }, function myError(response) {
             alert('by');
         });
@@ -414,7 +456,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 
         }).then(function mySuccess(response) {
-            $scope.RetrieveAgencyCommission = JSON.parse(response.data.responseText);
+            //$scope.RetrieveAgencyCommission = JSON.parse(response.data.responseText);
         }, function myError(response) {
             alert('by');
         });

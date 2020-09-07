@@ -1,10 +1,15 @@
 ﻿using Components.Irsa;
 using Irsa.Components.Soap;
 using Irsa.Configs;
+using Irsa.JsonModels;
+using Irsa.JsonModels.flight_search_request;
+using Irsa.JsonModels.flight_search_response;
 using Irsa.Models;
 using Irsa.Repository.Wrapper;
 using Irsa.XMLModels.Login_Travel_Agent_Request;
 using Irsa.XMLModels.Retrieve_Agency_Commission_Request;
+using Irsa.XMLModels.Retrieve_Fare_Quote_Request;
+using Irsa.XMLModels.Retrieve_Fare_Quote_Response;
 using Irsa.XMLModels.Retrieve_Security_Token_Request;
 using Irsa.XMLModels.Retrieve_Security_Token_Response;
 using Microsoft.AspNetCore.Mvc;
@@ -16,19 +21,21 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace Irsa.Controllers
 {
+
     public class HomeController : Controller
     {
+        public bool GetFromV3 = false;
+
         private readonly ILogger<HomeController> _logger;
         private readonly IRepositoryWrapper _repositoryWrapper;
         private readonly IServiceIrsa _serviceIrsa;
         private readonly IXmlService _xmlService;
         private readonly IMemoryCache _memoryCache;
         private readonly IManualLog _manualLog;
-        Classes obj = new Classes();
+        Classes _class = new Classes();
 
         public HomeController(ILogger<HomeController> logger,
                              IRepositoryWrapper RepositoryWrapper,
@@ -56,13 +63,16 @@ namespace Irsa.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> ManualFlightSearch(FlightRequest obj)
+        public async Task<ActionResult> ManualFlightSearch(string obj)
         {
-            int Adult = int.Parse(obj.AdultCount);
-            int Child = int.Parse(obj.ChildCount);
-            int infant = int.Parse(obj.InfantCount);
 
-            if (obj.FlightType == null)
+            var convert_model = JsonConvert.DeserializeObject<flight_saerch_request>(obj);
+
+            int Adult = int.Parse(convert_model.TravelerAvail.AdultCount);
+            int Child = int.Parse(convert_model.TravelerAvail.ChildCount);
+            int infant = int.Parse(convert_model.TravelerAvail.InfantCount);
+
+            if (convert_model.FlightType == null)
                 return Json(new { success = false, responseText = " نوع پرواز را انتخاب کنید" });
 
             if (Adult == 0)
@@ -75,130 +85,350 @@ namespace Irsa.Controllers
             {
                 return Json(new { success = false, responseText = " تعداد نوزاد نباید از تعداد بزرگسال بیشتر باشد" });
             }
+            var Result = "";
 
+
+            Result = await CalculateSearch(convert_model);
+
+
+            return Json(new { success = true, responseText = Result });
+
+
+        }
+
+        private async Task<string> CalculateSearch(flight_saerch_request obj)
+        {
+
+            //Get from V3
+            if (GetFromV3)
+            {
+
+                return await GetSearchFromV3(obj);
+            }
+            else
+            {
+
+                return await GetSearchFromSalamAir(obj);
+            }
+
+        }
+
+        private async Task<string> GetSearchFromV3(flight_saerch_request obj)
+        {
             dynamic generateParam = new System.Dynamic.ExpandoObject();
 
 
-            if (obj.FlightType == "One-way")
+            generateParam = new
             {
-                generateParam = new
+                TravelerAvail = new
                 {
-                    TravelerAvail = new
-                    {
-                        AdultCount = obj.AdultCount,
-                        ChildCount = obj.ChildCount,
-                        InfantCount = obj.InfantCount
-                    },
-                    AirItineraries = new[]
-                    {
-                    new {
-                        DepartureDate=obj.GoDate,
-                        Origin=obj.Origin,
-                        Destination=obj.Destination,
-                        ConnectionID= 0
-                        }
-                    },
-                    LoginID = "BBE897FF-F402-4370-9906-7FF2980FA1ED",
-                    SearchFilters = new
-                    {
-                        Language = obj.Language,
-                        Cabin = obj.Cabin,
-                        Currency = obj.Currency
-                    },
-                };
-            }
-            else if (obj.FlightType == "RoundTrip")
+                    AdultCount = obj.TravelerAvail.AdultCount,
+                    ChildCount = obj.TravelerAvail.ChildCount,
+                    InfantCount = obj.TravelerAvail.InfantCount
+                },
+                AirItineraries = new List<AirItinerary>(),
+
+                LoginID = "BBE897FF-F402-4370-9906-7FF2980FA1ED"
+            };
+            foreach (var item in obj.AirItineraries)
             {
-                generateParam = new
+                generateParam.AirItineraries.Add(new AirItinerary()
                 {
-                    TravelerAvail = new
-                    {
-                        AdultCount = obj.AdultCount,
-                        ChildCount = obj.ChildCount,
-                        InfantCount = obj.InfantCount
-                    },
-                    AirItineraries = new[]
-                    {
-                    new {
-                        DepartureDate=obj.GoDate,
-                        Origin=obj.Origin,
-                        Destination=obj.Destination,
-                        ConnectionID= 0
-                        },
+                    DepartureDate = item.DepartureDate,
+                    Origin = item.Origin,
+                    Destination = item.Destination,
+                    ConnectionID = item.ConnectionID,
+                    AllAirportsDestination = item.AllAirportsDestination,
+                    AllAirportsOrigin = item.AllAirportsOrigin
 
-                   new {
-                        DepartureDate=obj.BackDate,
-                        Origin=obj.Destination,
-                        Destination=obj.Origin,
-                        ConnectionID= 1
-                        },
-                   },
-                    LoginID = "BBE897FF-F402-4370-9906-7FF2980FA1ED",
-                    SearchFilters = new
-                    {
-                        Language = obj.Language,
-                        Cabin = obj.Cabin,
-                        Currency = obj.Currency
-                    },
-
-                };
+                });
             }
-            else if (obj.FlightType == "Multi")
-            {
-                generateParam = new
-                {
-                    TravelerAvail = new
-                    {
-                        AdultCount = obj.AdultCount,
-                        ChildCount = obj.ChildCount,
-                        InfantCount = obj.InfantCount
-                    },
-                    AirItineraries = new[]
-                    {
-                    new {
-                        DepartureDate=obj.GoDate,
-                        Origin=obj.Origin,
-                        Destination=obj.Destination,
-                        ConnectionID= 0
-                        },
 
-                    new {
-                        DepartureDate=obj.GoDate2,
-                        Origin=obj.Origin2,
-                        Destination=obj.Destination2,
-                        ConnectionID= 1
-                        },
-                    new {
-                        DepartureDate=obj.GoDate3,
-                        Origin=obj.Origin3,
-                        Destination=obj.Destination3,
-                        ConnectionID= 2
-                        },
-                    },
-                    LoginID = "BBE897FF-F402-4370-9906-7FF2980FA1ED",
-                    SearchFilters = new
-                    {
-                        Language = obj.Language,
-                        Cabin = obj.Cabin,
-                        Currency = obj.Currency
-                    },
 
-                };
-            }
 
             var JsonBody = JsonConvert.SerializeObject(generateParam);
 
-            var Result = await _serviceIrsa.Post(@" https://api-v3.iati.ir/flight/Cached_Search//908A42A77E359810068FBBEE010EA522", JsonBody.ToString());
-            if (Result == "")
+            var OutPut = "";
+            OutPut = await _serviceIrsa.Post(@"https://testapi-v3.iati.ir/flight/search/908A42A77E359810068FBBEE010EA522", JsonBody.ToString());
+
+
+
+            _manualLog.WriteLog((string)JsonBody, "SearchRequest");
+            _manualLog.WriteLog((string)OutPut, "SearchResponse");
+
+            return OutPut;
+        }
+
+
+        private async Task<string> GetSearchFromSalamAir(flight_saerch_request obj)
+        {
+            var param = new Retrieve_Fare_Quote_Request()
             {
-                Result = await _serviceIrsa.Post(@"https://testapi-v3.iati.ir/flight/search/908A42A77E359810068FBBEE010EA522", JsonBody.ToString());
+                Header = new XMLModels.Retrieve_Fare_Quote_Request.Header()
+                {
+                },
+                Body = new XMLModels.Retrieve_Fare_Quote_Request.Body()
+                {
+                    RetrieveFareQuote = new RetrieveFareQuote()
+                    {
+                        RetrieveFareQuoteRequest = new RetrieveFareQuoteRequest()
+                        {
+                            SecurityGUID = obj.SecurityGUID,
+                            CarrierCodes = new XMLModels.Retrieve_Fare_Quote_Request.CarrierCodes()
+                            {
+                                CarrierCode = new XMLModels.Retrieve_Fare_Quote_Request.CarrierCode()
+                                {
+                                    AccessibleCarrierCode = "OV"
+                                }
+                            },
+                            ClientIPAddress = "127.0.0.1",
+                            HistoricUserName = "ota_irsaaseman",
+                            CurrencyOfFareQuote = "IRR",
+                            PromotionalCode = "",
+                            IataNumberOfRequestor = "OTAIRN03",
+                            CorporationID = "-214",
+                            FareFilterMethod = "NoCombinabilityRoundtripLowestFarePerFareType",
+                            FareGroupMethod = "WebFareTypes",
+                            InventoryFilterMethod = "All",
+                            FareQuoteDetails = new FareQuoteDetails()
+                            {
+                                FareQuoteDetail = new List<FareQuoteDetail>()
+
+                            },
+                            ProfileId = "1"
+                        }
+                    }
+                }
+            };
+
+            foreach (var item in obj.AirItineraries)
+            {
+                var _FareQuoteRequestInfo = new List<FareQuoteRequestInfo>();
+                param.Body.RetrieveFareQuote.RetrieveFareQuoteRequest.FareQuoteDetails.FareQuoteDetail.Add(
+                 new FareQuoteDetail()
+                 {
+                     Origin = item.Origin,
+                     Destination = item.Destination,
+                     UseAirportsNotMetroGroups = false,
+                     UseAirportsNotMetroGroupsAsRule = false,
+                     UseAirportsNotMetroGroupsForFrom = false,
+                     UseAirportsNotMetroGroupsForTo = false,
+                     DateOfDeparture = item.DepartureDate,
+                     FareTypeCategory = "1",
+                     FareClass = "",
+                     FareBasisCode = "",
+                     Cabin = "",
+                     LFID = "-214",
+                     OperatingCarrierCode = "",
+                     MarketingCarrierCode = "",
+                     NumberOfDaysBefore = "0",
+                     NumberOfDaysAfter = "0",
+                     LanguageCode = "en",
+                     TicketPackageID = "1",
+                     FareQuoteRequestInfos = new FareQuoteRequestInfos()
+                     {
+                         FareQuoteRequestInfo = _FareQuoteRequestInfo
+
+                     }
+                 });
+                if (obj.TravelerAvail.AdultCount != "0")
+                    _FareQuoteRequestInfo.Add(new FareQuoteRequestInfo
+                    {
+                        PassengerTypeID = "1",
+                        TotalSeatsRequired = obj.TravelerAvail.AdultCount
+                    });
+                if (obj.TravelerAvail.ChildCount != "0")
+                    _FareQuoteRequestInfo.Add(new FareQuoteRequestInfo
+                    {
+                        PassengerTypeID = "6",
+                        TotalSeatsRequired = obj.TravelerAvail.ChildCount
+                    });
+                if (obj.TravelerAvail.InfantCount != "0")
+                    _FareQuoteRequestInfo.Add(new FareQuoteRequestInfo
+                    {
+                        PassengerTypeID = "5",
+                        TotalSeatsRequired = obj.TravelerAvail.InfantCount
+                    });
+            }
+
+            var xmlBody = _class.GenerateXmlBody<Retrieve_Fare_Quote_Request>(param);
+
+
+            var ResultWebService = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.Pricing.svc",
+                                                          xmlBody,
+                                                          "http://tempuri.org/IConnectPoint_Pricing/RetrieveFareQuote");
+
+
+
+            var response = _class.DeserializeXmlToClass<Retrieve_Fare_Quote_Response>(ResultWebService);
+
+
+
+
+            var _flight = new List<JsonModels.flight_search_response.Flights>();
+
+
+
+            var resultModel = new flight_search_response()
+            {
+                SearchID = Guid.NewGuid(),
+                SearchTimeSeconds = "00",
+                CurrencyCode = "IRR",
+                SearchType = obj.FlightType,
+                DomesticFlight = false,
+                HasMoreResult = false,
+                AllFlightsCount = "",
+                FlightItems = new JsonModels.flight_search_response.FlightItems()
+                {
+                    Flights = new List<JsonModels.flight_search_response.Flights>()
+
+                }
+            };
+
+            foreach (var _flightSegment in response.Body.RetrieveFareQuoteResponse.RetrieveFareQuoteResult.FlightSegments.FlightSegment)
+            {
+                var _segmentDetail = response.Body.RetrieveFareQuoteResponse.RetrieveFareQuoteResult.SegmentDetails.SegmentDetail.Where(z => z.LFID == _flightSegment.LFID).SingleOrDefault();
+
+                var LegDetails = response.Body.RetrieveFareQuoteResponse.RetrieveFareQuoteResult.LegDetails.LegDetail.Where(z => z.PFID == _flightSegment.FlightLegDetails.FlightLegDetail.SingleOrDefault().PFID);
+
+                var _legsList = new List<Legs>();
+                foreach (var leg in LegDetails)
+                {
+
+                    _legsList.Add(new Legs()
+                    {
+                        FlightNumber = leg.FlightNum,
+                        DepartureAirport = leg.Origin,
+                        ArrivalAirport = leg.Destination,
+                        DepartureTime = leg.DepartureDate,
+                        ArrivalTime = leg.ArrivalDate,
+                        FlightDurationMinutes = leg.FlightTime,
+                        LayoverDurationMinutes = "0",
+                        // SeatCount = tooie fare por mishavad
+
+                    });
+                }
+
+
+                foreach (var _fareType in _flightSegment.FareTypes.FareType)
+                {
+                    var _faresList = new List<Fares>();
+                    foreach (var _fareInfo in _fareType.FareInfos.FareInfo)
+                    {
+                        string _PassengerType = "";
+                        string _Quantity = "";
+                        if (_fareInfo.PTCID == "1")
+                        {
+                            _PassengerType = "ADULT";
+                            _Quantity = obj.TravelerAvail.AdultCount;
+                        }
+                        else if (_fareInfo.PTCID == "6")
+                        {
+                            _PassengerType = "CHILD";
+                            _Quantity = obj.TravelerAvail.ChildCount;
+                        }
+
+                        else if (_fareInfo.PTCID == "5")
+                        {
+                            _PassengerType = "INFANT";
+                            _Quantity = obj.TravelerAvail.InfantCount;
+
+                        }
+
+
+                        _faresList.Add(new Fares()
+                        {
+                            PassengerType = _PassengerType,
+                            Quantity = int.Parse(_Quantity),
+                            BaseFare = (int.Parse(_fareInfo.BaseFareAmt)) * int.Parse(_Quantity),
+                            Tax = (int.Parse(_fareInfo.BaseFareAmtInclTax) - int.Parse(_fareInfo.BaseFareAmt)) * int.Parse(_Quantity),
+                            ServiceCommission = "0",
+                            ServiceCommissionOnFare = "0",
+                            ServiceProviderCost = "0",
+                            ServiceFee = "0",
+                            APICost = "0",
+                            Commission = "0",
+                            Supplement = "0",
+                            Fuel = "0",
+                            Discount = "0",
+                            Total = (int.Parse(_fareInfo.BaseFareAmtInclTax) * int.Parse(_Quantity))
+
+                        });
+
+
+                    }
+
+
+                    int _BaggageDetailID = 0;
+
+                    switch (_fareType.FareTypeName.Trim().ToUpper())
+                    {
+                        case "LIGHT":
+                            _BaggageDetailID = 0;
+                            break;
+                        case "FRIENDLY":
+                            _BaggageDetailID = 4;
+                            break;
+                        case "FRIENDLYVALUE":
+                            _BaggageDetailID = 6;
+                            break;
+                        case "FRIENDLYPLUS":
+                            _BaggageDetailID = 8;
+                            break;
+                        case "FLEXI":
+                            _BaggageDetailID = 4;
+                            break;
+                    }
+
+                    var _minSeatCount = _fareType.FareInfos.FareInfo.Min(a => a.SeatsAvailable);
+                    var _baggageList = new List<BaggageItems>();
+                    _baggageList.Add(new BaggageItems()
+                    {
+                        BaggageDetailID = _BaggageDetailID,
+                        PassengerType = "ADULT"
+                    });
+                    //if (obj.TravelerAvail.ChildCount != "0")
+                    //{
+                    //    _baggageList.Add(new BaggageItems()
+                    //    {
+                    //        BaggageDetailID = _BaggageDetailID,
+                    //        PassengerType = "Child"
+                    //    });
+                    //}
+                    _legsList.ForEach(c =>
+                    {
+                        c.SeatCount = _minSeatCount > 10 ? "9" : _minSeatCount.ToString();
+                        c.BaggageItems = _baggageList;
+
+                    });
+
+
+                    resultModel.FlightItems.Flights.Add(new JsonModels.flight_search_response.Flights()
+                    {
+
+                        FlightID = Guid.NewGuid(),
+                        PricingType = "Free_Form",
+                        PackageID = "1",
+                        ConnectionID = _flightSegment.LegCount - 1,
+                        TotalFareAmout = _faresList.Sum(c => c.Total),
+                        TotalFlightDuration = "0",
+                        Stops = _segmentDetail.Stops,
+                        ProviderCode = _segmentDetail.CarrierCode,
+                        CabinClass = _fareType.FareInfos.FareInfo.Select(x => x.Cabin).Take(1).FirstOrDefault(),
+                        Fares = _faresList,
+                        Legs = _legsList
+                    });
+
+
+                }
+
 
             }
-            _manualLog.WriteLog((string)JsonBody, "SearchRequest");
-            _manualLog.WriteLog((string)Result, "SearchResponse");
-            return Json(new { success = true, responseText = Result });
-
+            return JsonConvert.SerializeObject(resultModel);
         }
+
+
+
 
 
 
@@ -509,11 +739,6 @@ namespace Irsa.Controllers
         }
 
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
 
 
 
@@ -550,14 +775,14 @@ namespace Irsa.Controllers
 
 
 
-            var xmlBody = obj.GenerateXmlBody<Retrieve_Security_Token_Request>(param);
+            var xmlBody = _class.GenerateXmlBody<Retrieve_Security_Token_Request>(param);
 
 
             var Result = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.Security.svc",
                                                           xmlBody,
                                                           "http://tempuri.org/IConnectPoint_Security/RetrieveSecurityToken");
 
-            Retrieve_Security_Token_Response response = obj.DeserializeXmlToClass<Retrieve_Security_Token_Response>(Result);
+            Retrieve_Security_Token_Response response = _class.DeserializeXmlToClass<Retrieve_Security_Token_Response>(Result);
 
             return Json(new { success = true, responseText = JsonConvert.SerializeObject(response.Body.RetrieveSecurityTokenResponse.RetrieveSecurityTokenResult.SecurityToken) });
 
@@ -589,9 +814,9 @@ namespace Irsa.Controllers
                             },
                             ClientIPAddress = "127.0.0.1",
                             HistoricUserName = "ota_irsaaseman",
-                            IATANumber= "OTAIRN03",
-                            UserName= "ota_irsaaseman",
-                            Password= "Confirm@1234"
+                            IATANumber = "OTAIRN03",
+                            UserName = "ota_irsaaseman",
+                            Password = "Confirm@1234"
                         }
                     }
                 }
@@ -599,7 +824,7 @@ namespace Irsa.Controllers
 
 
 
-            var xmlBody = obj.GenerateXmlBody<Login_Travel_Agent_Request>(param);
+            var xmlBody = _class.GenerateXmlBody<Login_Travel_Agent_Request>(param);
 
 
             var Result = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.TravelAgents.svc",
@@ -615,7 +840,7 @@ namespace Irsa.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> RetrieveAgencyCommission(RetrieveAgencyCommissionRequest LTAR)
+        public async Task<IActionResult> RetrieveAgencyCommission(RetrieveAgencyCommissionRequest RACR)
         {
 
             var param = new Retrieve_Agency_Commission_Request()
@@ -629,7 +854,7 @@ namespace Irsa.Controllers
                     {
                         RetrieveAgencyCommissionRequest = new RetrieveAgencyCommissionRequest()
                         {
-                            SecurityGUID = LTAR.SecurityGUID,
+                            SecurityGUID = RACR.SecurityGUID,
                             CarrierCodes = new XMLModels.Retrieve_Agency_Commission_Request.CarrierCodes()
                             {
                                 CarrierCode = new XMLModels.Retrieve_Agency_Commission_Request.CarrierCode()
@@ -647,7 +872,7 @@ namespace Irsa.Controllers
 
 
 
-            var xmlBody = obj.GenerateXmlBody<Retrieve_Agency_Commission_Request>(param);
+            var xmlBody = _class.GenerateXmlBody<Retrieve_Agency_Commission_Request>(param);
 
 
             var Result = await _xmlService.InvokeService("http://salappuat.radixxuat.com/SAL/Radixx.Connectpoint/ConnectPoint.TravelAgents.svc",
@@ -659,6 +884,17 @@ namespace Irsa.Controllers
             return Json(new { success = true, responseText = Result });
 
         }
+
+
+
+
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
 
 
 

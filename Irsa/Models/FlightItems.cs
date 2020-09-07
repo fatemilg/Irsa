@@ -7,6 +7,6 @@ namespace Irsa.Models
 {
     public class FlightItems
     {
-        public IList<Flights> Flights { get; set; }
+        public List<Flights> Flights { get; set; }
     }
 }
