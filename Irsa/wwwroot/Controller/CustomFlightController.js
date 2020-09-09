@@ -6,18 +6,23 @@ app.config(['$tooltipProvider', function ($tooltipProvider) {
     });
 }]);
 
-app.controller('custom_flight_controller', function ($scope, $http, ngProgress) {
+app.controller('custom_flight_controller', function ($scope, $http, ngProgress, $window) {
     $scope.flight = {};
+    $scope.flight.FlightType = "RoundTrip";
     $scope.Peyment = {};
     $scope.SelectedFlightIDList = [];
     $scope.SearchID = null;
     $scope.SeatRequest = [];
+    $scope.AirItineraries = [];
+    $scope.Multi = {};
+    $scope.MultiFlights = [];
 
     $scope.flight.AdultCount = 1;
     $scope.flight.ChildCount = 0;
     $scope.flight.InfantCount = 0;
-    $scope.flight.GoDate = '2020-09-24';
-    $scope.flight.BackDate = '2020-09-26';
+    $scope.flight.DepartureDate = new Date('2020-09-24');
+    $scope.flight.ReturnDate = new Date('2020-09-26');
+    $scope.Multi.DepartureDate = new Date('2020-09-26');
 
     $scope.fillAirports = function () {
         ngProgress.start();
@@ -109,48 +114,57 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
 
     $scope.search = function () {
         ngProgress.start();
-        //param.SecurityGUID = $scope.SecurityToken;
+
         var _TravelerAvail = {
             AdultCount: $scope.flight.AdultCount,
             ChildCount: $scope.flight.ChildCount,
             InfantCount: $scope.flight.InfantCount
         }
-        var _AirItineraries = [];
+
+
+
+
+        //One-Way
         var rout1 = {
-            DepartureDate: $scope.flight.GoDate,
+            DepartureDate: $scope.formatDate($scope.flight.DepartureDate),
             Origin: $scope.flight.Origin,
-            Destination: $scope.flight.Destination,
-            ConnectionID: 0,
-            AllAirportsDestination: true,
-            AllAirportsOrigin: true
+            Destination: $scope.flight.Destination
 
         }
-        _AirItineraries.push(rout1);
+        $scope.AirItineraries.push(rout1);
 
+
+        //RoundTrip
         if ($scope.flight.FlightType == "RoundTrip") {
 
             var rout2 = {
-                DepartureDate: $scope.flight.BackDate,
+                DepartureDate: $scope.formatDate($scope.flight.ReturnDate),
                 Origin: $scope.flight.Destination,
                 Destination: $scope.flight.Origin,
-                ConnectionID: 1,
-                AllAirportsDestination: true,
-                AllAirportsOrigin: true
-
             }
-            _AirItineraries.push(rout2);
-
+            $scope.AirItineraries.push(rout2);
         }
- 
+        //Multi
+        else if ($scope.flight.FlightType == "Multi") {
+            $scope.AirItineraries = $scope.MultiFlights;
+        }
+
+        angular.forEach($scope.AirItineraries, function (item, index) {
+            item.AllAirportsDestination = false;
+            item.AllAirportsOrigin = false;
+            item.ConnectionID = index;
+        });
+
+
 
         var param = {
             TravelerAvail: _TravelerAvail,
-            AirItineraries: _AirItineraries,
+            AirItineraries: $scope.AirItineraries,
             FlightType: $scope.flight.FlightType,
-            SecurityGUID : $scope.SecurityToken
+            SecurityGUID: $scope.SecurityToken
         }
 
-        
+
         $http({
             method: 'POST',
             url: '/Home/ManualFlightSearch',
@@ -164,7 +178,9 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
                 return;
             }
             $scope.FlightResponse = JSON.parse(response.data.responseText);
-            $scope.SearchID = $scope.FlightResponse.SearchID;
+            $scope.SearchID = $scope.FlightResponse[0].FlightSearchResponse.SearchID;
+            $scope.SearchPackageLists = $scope.FlightResponse[0].PackageLists;
+
             $scope.SelectedFlightIDList = [];
             ngProgress.complete();
             ngProgress.stop();
@@ -172,6 +188,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
             ngProgress.complete();
             ngProgress.stop();
         });
+        $scope.AirItineraries = [];
     };
 
     Object.toparams = function ObjecttoParams(obj) {
@@ -192,13 +209,13 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
         }
     };
 
-    $scope.ShowFlightDetaillModal = function (_item) {
-        $scope.Legs = _item.Legs;
+    $scope.ShowLegsModal = function (_item) {
+        $scope.Legs = _item;
         $('#ModalLegs').modal('show');
     };
-    $scope.ShowPriceDetaillModal = function (_item) {
+    $scope.ShowFaresModal = function (_item) {
         $scope.Fares = _item;
-        $('#ModalPriceDetail').modal('show');
+        $('#ModalFares').modal('show');
     };
 
     $scope.ShowPriceDetailWithExtraServiceModal = function () {
@@ -352,9 +369,7 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
         });
     };
 
-    $scope.SelectOneWay = function () {
-        $scope.flight.BackDate = '';
-    };
+
 
     $scope.GetBaggages = function () {
         $http({
@@ -465,4 +480,71 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress) 
     $scope.fillAirports();
     $scope.GetBaggages();
     $scope.RetrieveSecurityToken();
+
+
+    $scope.AddMultiFlight = function (_multi) {
+
+
+        var item = {};
+        item.DepartureDate = $scope.formatDate(_multi.DepartureDate);
+        item.Origin = _multi.Origin;
+        item.Destination = _multi.Destination;
+        $scope.MultiFlights.push(item);
+
+        _multi.DepartureDate = "";
+        _multi.Origin = "";
+        _multi.Destination = "";
+
+
+    };
+
+    $scope.RemoveAirItinerary = function (index) {
+
+        var Origin = $scope.MultiFlights[index].Origin;
+        var Destination = $scope.MultiFlights[index].Destination;
+        if ($window.confirm("Do you want to delete: " + Origin + " to " + Destination)) {
+            $scope.MultiFlights.splice(index, 1);
+        }
+    }
+
+
+    $scope.formatDate = function (date) {
+        var d = new Date(date),
+            month = '' + (d.getMonth() + 1),
+            day = '' + d.getDate(),
+            year = d.getFullYear();
+
+        if (month.length < 2)
+            month = '0' + month;
+        if (day.length < 2)
+            day = '0' + day;
+
+        return [year, month, day].join('-');
+    }
+
+
+    $scope.CalculateTotalBaseAmount = function (_item) {
+        //angular.forEach(_item.Packages, function (value, key) {
+        //    if (value != null) {
+        //        if (value.PricingType === "PACKAGED") {
+        //            return value.TotalFareAmout;
+        //        }
+        //        else {
+        //            return _item.Packages[0].TotalFareAmout;
+        //        }
+        //    }
+
+        //});
+        if (_item.Packages[0].PricingType === "PACKAGED") {
+
+            return _item.Packages[0].TotalFareAmout;
+        }
+        else if (_item.Packages[0].PricingType === "FREE_FORM"){
+            var number1 = _item.Packages[0].TotalFareAmout
+            var number2 = _item.Packages[1].TotalFareAmout
+            return number1 + number2;
+        }
+    }
+
+
 });

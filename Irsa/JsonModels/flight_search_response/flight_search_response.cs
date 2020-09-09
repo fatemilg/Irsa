@@ -85,4 +85,26 @@ namespace Irsa.JsonModels.flight_search_response
         public int BaggageDetailID { get; set; }
         public string PassengerType { get; set; }
     }
+
+
+
+    public class PackageResponseSearch
+    {
+        public flight_search_response FlightSearchResponse { get; set; }
+        public List<PackageList> PackageLists { get; set; }
+    }
+
+
+    public class PackageList
+    {
+        public List<Flights> Packages { get; set; }
+       
+    }
+
+
+    public class Package
+    {
+        public Flights ZeroConnection { get; set; }
+        public Flights OneConnection { get; set; }
+    }
 }

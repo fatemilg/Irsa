@@ -8,12 +8,7 @@ namespace Irsa.JsonModels.flight_search_request
 
     public class flight_saerch_request
     {
-        //public flight_saerch_request()
-        //{
-        //    AirItineraries = new List<AirItinerary>();
-        //    SearchFilters = new SearchFilters();
-        //    TravelerAvail = new TravelerAvail();
-        //}
+
         public TravelerAvail TravelerAvail { get; set; }
         public List<AirItinerary> AirItineraries { get; set; }
         public Guid LoginID { get; set; }
@@ -34,10 +29,7 @@ namespace Irsa.JsonModels.flight_search_request
 
     public class AirItinerary
     {
-        //public AirItinerary()
-        //{
 
-        //}
         public string DepartureDate { get; set; }
         public string Origin { get; set; }
         public string Destination { get; set; }

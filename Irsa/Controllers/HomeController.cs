@@ -27,7 +27,7 @@ namespace Irsa.Controllers
 
     public class HomeController : Controller
     {
-        public bool GetFromV3 = false;
+        public bool GetFromV3 = true;
 
         private readonly ILogger<HomeController> _logger;
         private readonly IRepositoryWrapper _repositoryWrapper;
@@ -36,6 +36,7 @@ namespace Irsa.Controllers
         private readonly IMemoryCache _memoryCache;
         private readonly IManualLog _manualLog;
         Classes _class = new Classes();
+        private IEnumerable<Package> cross_join_list;
 
         public HomeController(ILogger<HomeController> logger,
                              IRepositoryWrapper RepositoryWrapper,
@@ -115,49 +116,122 @@ namespace Irsa.Controllers
 
         private async Task<string> GetSearchFromV3(flight_saerch_request obj)
         {
-            dynamic generateParam = new System.Dynamic.ExpandoObject();
+            //generate request model
+            var _AirItineraries = new List<AirItinerary>();
 
-
-            generateParam = new
+            var generateParam = new flight_saerch_request()
             {
-                TravelerAvail = new
+                TravelerAvail = new TravelerAvail()
                 {
                     AdultCount = obj.TravelerAvail.AdultCount,
                     ChildCount = obj.TravelerAvail.ChildCount,
                     InfantCount = obj.TravelerAvail.InfantCount
                 },
-                AirItineraries = new List<AirItinerary>(),
-
-                LoginID = "BBE897FF-F402-4370-9906-7FF2980FA1ED"
+                AirItineraries = obj.AirItineraries,
+                LoginID = Guid.Parse("BBE897FF-F402-4370-9906-7FF2980FA1ED")
             };
-            foreach (var item in obj.AirItineraries)
-            {
-                generateParam.AirItineraries.Add(new AirItinerary()
-                {
-                    DepartureDate = item.DepartureDate,
-                    Origin = item.Origin,
-                    Destination = item.Destination,
-                    ConnectionID = item.ConnectionID,
-                    AllAirportsDestination = item.AllAirportsDestination,
-                    AllAirportsOrigin = item.AllAirportsOrigin
 
-                });
-            }
-
-
-
+            //convert model to json
             var JsonBody = JsonConvert.SerializeObject(generateParam);
 
+            //call service and return json
             var OutPut = "";
             OutPut = await _serviceIrsa.Post(@"https://testapi-v3.iati.ir/flight/search/908A42A77E359810068FBBEE010EA522", JsonBody.ToString());
 
+            //convert json response to model
+            var convertedOutPutToModel = JsonConvert.DeserializeObject<flight_search_response>(OutPut);
+
+
+            var package_response_search_list = new List<PackageResponseSearch>();
+            var package_list = new List<PackageList>();
+
+            //cross join connection 0 and 1
+            var grouped_list = convertedOutPutToModel.FlightItems.Flights.GroupBy(p => new { p.PackageID, p.ProviderCode, p.PricingType });
+            foreach (var item in grouped_list)
+            {
+                var zero_list = convertedOutPutToModel.FlightItems.Flights.Where(x => x.ConnectionID == 0 &&
+                                                                  x.PackageID == item.Key.PackageID &&
+                                                                  x.ProviderCode == item.Key.ProviderCode &&
+                                                                  x.PricingType == item.Key.PricingType);
+
+
+                var one_list = convertedOutPutToModel.FlightItems.Flights.Where(x => x.ConnectionID == 1 &&
+                                                                 x.PackageID == item.Key.PackageID &&
+                                                                 x.ProviderCode == item.Key.ProviderCode &&
+                                                                 x.PricingType == item.Key.PricingType);
+
+
+        
+                if (obj.FlightType == "RoundTrip")
+                {
+                     cross_join_list = from zl in zero_list
+
+                                          from ol in one_list
+
+                                          select new Package()
+
+                                          {
+
+                                              ZeroConnection = zl,
+
+                                              OneConnection = ol
+                                          };
+                }
+                else if (obj.FlightType == "One-way")
+                {
+                    cross_join_list = from zl in zero_list
+
+
+                                      select new Package()
+
+                                      {
+
+                                          ZeroConnection = zl
+                                      };
+                }
+
+
+
+
+
+
+
+                foreach (var cjl in cross_join_list.ToList())
+                {
+                    package_list.Add(new PackageList()
+                    {
+                        Packages = new List<JsonModels.flight_search_response.Flights>()
+                        {
+                            cjl.ZeroConnection,
+                            cjl.OneConnection
+
+                        }
+                    });
+
+                }
+
+            }
+
+            package_response_search_list.Add(
+            new PackageResponseSearch()
+            {
+                PackageLists = package_list,
+                FlightSearchResponse = new flight_search_response()
+                {
+                    SearchID = convertedOutPutToModel.SearchID,
+                    SearchType = convertedOutPutToModel.SearchType
+                }
+            }
+
+            );
 
 
             _manualLog.WriteLog((string)JsonBody, "SearchRequest");
             _manualLog.WriteLog((string)OutPut, "SearchResponse");
 
-            return OutPut;
+            return JsonConvert.SerializeObject(package_response_search_list);
         }
+
 
 
         private async Task<string> GetSearchFromSalamAir(flight_saerch_request obj)
@@ -424,6 +498,10 @@ namespace Irsa.Controllers
 
 
             }
+
+
+
+
             return JsonConvert.SerializeObject(resultModel);
         }
 

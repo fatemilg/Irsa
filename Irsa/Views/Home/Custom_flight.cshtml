@@ -7,200 +7,241 @@
     <form id="FormFlight" name="FormFlight" novalidate>
         <div class="row">
             <div class="col-lg-12 col-md-12">
-                <input type="radio" ng-model="flight.FlightType" value="One-way" ng-click="SelectOneWay()">One-way
                 <input type="radio" ng-model="flight.FlightType" value="RoundTrip">RoundTrip
-                @*<input type="radio" ng-model="flight.FlightType" value="Multi">Multi*@
+                <input type="radio" ng-model="flight.FlightType" value="One-way">One-way
+                <input type="radio" ng-model="flight.FlightType" value="Multi">Multi
             </div>
             <div class="col-lg-12 col-md-12" style="margin-top:10px">
                 <h4 style="color:green">Required:</h4>
             </div>
 
             <div class="col-lg-3 col-md-3">
-                <label>بزرگسال:</label>
+                <label>Adults:</label>
                 <input id="txtAdultCount" name="txtAdultCount" ng-model="flight.AdultCount" type="number" class="form-control" required />
             </div>
             <div class="col-lg-3 col-md-3">
-                <label>کودک:</label>
+                <label>Children:</label>
                 <input id="txtChildCount" name="txtChildCount" ng-model="flight.ChildCount" type="number" class="form-control" required />
             </div>
             <div class="col-lg-3 col-md-3">
-                <label>نوزاد:</label>
+                <label>Infants:</label>
                 <input id="txtInfantCount" name="txtChildCount" ng-model="flight.InfantCount" type="number" class="form-control" required />
             </div>
             <div class="col-lg-3 col-md-3" style="padding-top:23px">
                 <input type="button" value="Search" class="btn btn-info" ng-click="search()" ng-disabled="FormFlight.$invalid" />
             </div>
 
-            <div class="col-lg-3 col-md-3">
-                <label>مبدا:</label>
+            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType!='Multi'">
+                <label>Origin:</label>
                 <select id="drpOrigin" ng-model="flight.Origin" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
                     <option value="">Select Option</option>
                 </select>
             </div>
-            <div class="col-lg-3 col-md-3">
-                <label>مقصد:</label>
+            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType!='Multi'">
+                <label>Destination:</label>
                 <select id="drpDestination" ng-model="flight.Destination" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
                     <option value="">Select Option</option>
                 </select>
             </div>
-            <div class="col-lg-3 col-md-3">
-                <label>تاریخ رفت:</label>
-                <input id="txtGoDate" name="txtGoDate" ng-model="flight.GoDate" type="text" class="form-control" required />
+            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType!='Multi'">
+                <label>Departing:</label>
+                <input id="txtDepartureDate" name="txtDepartureDate" ng-model="flight.DepartureDate" type="date" class="form-control" required />
             </div>
-            <div class="col-lg-3 col-md-3" ng-switch="flight.FlightType">
-                <div ng-switch-when="RoundTrip">
-                    <label>تاریخ برگشت:</label>
-                    <input id="txtBackDate" name="txtBackDate" ng-model="flight.BackDate" type="text" class="form-control" />
-                </div>
+            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='RoundTrip'">
+                <label>Returning:</label>
+                <input id="txtReturnDate" name="txtReturnDate" ng-model="flight.ReturnDate" type="date" class="form-control" />
             </div>
 
 
-            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='Multi'">
-                <label>مبدا:</label>
-                <select id="drpOrigin" ng-model="flight.Origin2" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
-                    <option value="">Select Option</option>
-                </select>
+            <div class="col-lg-12" ng-if="flight.FlightType=='Multi'" style="margin-top:30px">
+                <table class="table">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Origin</th>
+                            <th>Destination</th>
+                            <th>Departing</th>
+                        </tr>
+                    </thead>
+                    <tbody ng-repeat="mf in MultiFlights">
+                        <tr>
+                            <td><span class="form-control" type="text">{{mf.Origin}}</span></td>
+                            <td><span class="form-control" type="text">{{mf.Destination}}</span></td>
+                            <td><span class="form-control" type="text">{{mf.DepartureDate}}</span></td>
+                            <td><input class="form-control" type="button" ng-click="RemoveAirItinerary($index)" value="Remove" /></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>
+                                <select id="drpOrigin" ng-model="Multi.Origin" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
+                                    <option value="">Select Option</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select id="drpOrigin" ng-model="Multi.Destination" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
+                                    <option value="">Select Option</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input class="form-control" type="date" ng-model="Multi.DepartureDate" />
+                            </td>
+                            <td><input class="form-control" type="button" ng-click="AddMultiFlight(Multi)" value="Add" /></td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
-            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='Multi'">
-                <label>مقصد:</label>
-                <select id="drpDestination" ng-model="flight.Destination2" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
-                    <option value="">Select Option</option>
-                </select>
-            </div>
-            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='Multi'">
-                <label>تاریخ رفت:</label>
-                <input id="txtGoDate" name="txtGoDate" ng-model="flight.GoDate2" type="text" class="form-control" required />
-            </div>
-            <div class="col-lg-12"></div>
-            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='Multi'">
-                <label>مبدا:</label>
-                <select id="drpOrigin" ng-model="flight.Origin3" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
-                    <option value="">Select Option</option>
-                </select>
-            </div>
-            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='Multi'">
-                <label>مقصد:</label>
-                <select id="drpDestination" ng-model="flight.Destination3" ng-options="x.AirportCode as x.AirportCode for x in Airports" class="form-control">
-                    <option value="">Select Option</option>
-                </select>
-            </div>
-            <div class="col-lg-3 col-md-3" ng-if="flight.FlightType=='Multi'">
-                <label>تاریخ رفت:</label>
-                <input id="txtGoDate" name="txtGoDate" ng-model="flight.GoDate3" type="text" class="form-control" required />
-            </div>
+
 
             @*<div class="col-lg-12 col-md-12" style="margin-top:10px">
-                <h4 style="color:green">Optional:</h4>
-            </div>
-            <div class="col-lg-3 col-md-3">
-                <label>زبان:</label>
-                <select id="drpLanguage" ng-model="flight.Language" class="form-control">
-                    <option value="">Select Option</option>
-                    <option value="EN">EN</option>
-                    <option value="FA">FA</option>
-                    <option value="TR">TR</option>
-                </select>
+                    <h4 style="color:green">Optional:</h4>
+                </div>
+                <div class="col-lg-3 col-md-3">
+                    <label>زبان:</label>
+                    <select id="drpLanguage" ng-model="flight.Language" class="form-control">
+                        <option value="">Select Option</option>
+                        <option value="EN">EN</option>
+                        <option value="FA">FA</option>
+                        <option value="TR">TR</option>
+                    </select>
 
-            </div>
-            <div class="col-lg-3 col-md-3">
-                <label>کابین:</label>
-                <select id="drpCabin" ng-model="flight.MandatoryCabin" class="form-control">
-                    <option value="">Select Option</option>
-                    <option value="PROMO">PROMO</option>
-                    <option value="ECONOMY">ECONOMY</option>
-                    <option value="BUSINESS">BUSINESS</option>
-                    <option value="FIRST">FIRST</option>
-                </select>
+                </div>
+                <div class="col-lg-3 col-md-3">
+                    <label>کابین:</label>
+                    <select id="drpCabin" ng-model="flight.MandatoryCabin" class="form-control">
+                        <option value="">Select Option</option>
+                        <option value="PROMO">PROMO</option>
+                        <option value="ECONOMY">ECONOMY</option>
+                        <option value="BUSINESS">BUSINESS</option>
+                        <option value="FIRST">FIRST</option>
+                    </select>
 
-            </div>
-            <div class="col-lg-3 col-md-3">
-                <label>واحد پول:</label>
-                <select id="drpCurrency" ng-model="flight.Currency" class="form-control">
-                    <option value="">Select Option</option>
-                    <option value="IRR">IRR</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="TRY">TRY</option>
-                </select>
+                </div>
+                <div class="col-lg-3 col-md-3">
+                    <label>واحد پول:</label>
+                    <select id="drpCurrency" ng-model="flight.Currency" class="form-control">
+                        <option value="">Select Option</option>
+                        <option value="IRR">IRR</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="TRY">TRY</option>
+                    </select>
 
-            </div>*@
+                </div>*@
 
         </div>
 
         <div class="row" style="margin-top:40px;margin-bottom:10px">
-            <div class="col-lg-2 col-md-2"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal()" /></div>
-            <div class="col-lg-10 col-md-10"><input type="button" class="btn btn-danger" value="Fare Rules" ng-click="ShowFareRuleModal()" /></div>
+            @*<div class="col-lg-2 col-md-2"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal()" /></div>
+                <div class="col-lg-10 col-md-10"><input type="button" class="btn btn-danger" value="Fare Rules" ng-click="ShowFareRuleModal()" /></div>*@
 
 
-            <div class="col-lg-3 col-md-3" style="color:red">CurrencyCode:<span style="color:black">{{FlightResponse.CurrencyCode}}</span></div>
-            <div class="col-lg-3 col-md-3" style="color:red">SearchTimeSeconds:<span style="color:black">{{FlightResponse.SearchTimeSeconds}}</span></div>
-            <div class="col-lg-3 col-md-3" style="color:red">SearchType:<span style="color:black"> {{FlightResponse.SearchType}}</span></div>
-
-
-
+            @*<div class="col-lg-3 col-md-3" style="color:red">CurrencyCode:<span style="color:black">{{FlightResponse.CurrencyCode}}</span></div>
+                <div class="col-lg-3 col-md-3" style="color:red">SearchTimeSeconds:<span style="color:black">{{FlightResponse.SearchTimeSeconds}}</span></div>
+                <div class="col-lg-3 col-md-3" style="color:red">SearchType:<span style="color:black"> {{FlightResponse.SearchType}}</span></div>*@
         </div>
         <div class="row">
-            <table class="table table-hover table-Padding">
-                <thead>
-                    <tr>
-                        <th>Select</th>
-                        <th>CabinClass</th>
-                        <th>
-                            Stops
-                        </th>
-                        <th>
-                            TotalFareAmout
-                            <a ng-click="setSortColumn('TotalFareAmout')">
-                                <i class="fa fa-sort" style="padding-left:8px;font-size:16px;cursor:pointer"></i>
-                            </a>
-                        </th>
-                        <th ng-click="setSortColumn('ConnectionID')">
-                            ConnectionID
-                        </th>
-                        <th ng-click="setSortColumn('PackageID')">
-                            PackageID
-                        </th>
-                        <th>
-                            Pricing Type
-                        </th>
-                        <th>
-                            Provider
-                        </th>
-                        <th>Detail Price</th>
-                        <th>Detail Flight</th>
+            @*<table class="table table-hover table-Padding">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>CabinClass</th>
+                            <th>
+                                Stops
+                            </th>
+                            <th>
+                                TotalFareAmout
+                                <a ng-click="setSortColumn('TotalFareAmout')">
+                                    <i class="fa fa-sort" style="padding-left:8px;font-size:16px;cursor:pointer"></i>
+                                </a>
+                            </th>
+                            <th ng-click="setSortColumn('ConnectionID')">
+                                ConnectionID
+                            </th>
+                            <th ng-click="setSortColumn('PackageID')">
+                                PackageID
+                            </th>
+                            <th>
+                                Pricing Type
+                            </th>
+                            <th>
+                                Provider
+                            </th>
+                            <th>Detail Price</th>
+                            <th>Detail Flight</th>
 
 
 
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr dir-paginate="item in FlightResponse.FlightItems.Flights |orderBy:orderProperty|itemsPerPage:50">
-                        <td>
-                            <input id="chkShow{{$index}}" type="checkbox" class="form-check-input" ng-model="item.Select" ng-change="SelectingFlight(item.Select,item.FlightID)">
-                        </td>
-                        <td>{{item.CabinClass}}</td>
-                        <td>{{item.Stops}}</td>
-                        <td>{{item.TotalFareAmout |currency:"": 0}}</td>
-                        <td>{{item.ConnectionID}}</td>
-                        <td>{{item.PackageID}}</td>
-                        <td>{{item.PricingType}}</td>
-                        <td>{{item.ProviderCode}}</td>
-                        <td>
-                            <span class="fa fa-list" style="cursor:pointer" ng-click="ShowPriceDetaillModal(item.Fares)">
-                            </span>
-                        </td>
-                        <td>
-                            <span class="fa fa-list" style="cursor:pointer" ng-click="ShowFlightDetaillModal(item)">
-                            </span>
-                        </td>
-                    </tr>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr dir-paginate="item in FlightResponse.FlightItems.Flights |orderBy:orderProperty|itemsPerPage:50">
+                            <td>
+                                <input id="chkShow{{$index}}" type="checkbox" class="form-check-input" ng-model="item.Select" ng-change="SelectingFlight(item.Select,item.FlightID)">
+                            </td>
+                            <td>{{item.CabinClass}}</td>
+                            <td>{{item.Stops}}</td>
+                            <td>{{item.TotalFareAmout |currency:"": 0}}</td>
+                            <td>{{item.ConnectionID}}</td>
+                            <td>{{item.PackageID}}</td>
+                            <td>{{item.PricingType}}</td>
+                            <td>{{item.ProviderCode}}</td>
+                            <td>
+                                <span class="fa fa-list" style="cursor:pointer" ng-click="ShowPriceDetaillModal(item.Fares)">
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fa fa-list" style="cursor:pointer" ng-click="ShowFlightDetaillModal(item)">
+                                </span>
+                            </td>
+                        </tr>
 
-                </tbody>
-            </table>
-            <dir-pagination-controls max-size="5"
-                                     direction-links="true"
-                                     boundary-links="true">
-            </dir-pagination-controls>
+                    </tbody>
+                </table>
+                <dir-pagination-controls max-size="5"
+                                         direction-links="true"
+                                         boundary-links="true">
+                </dir-pagination-controls>*@
+
+            <div class="col-lg-12" ng-repeat="item in SearchPackageLists">
+                <div style="margin-bottom:10px">
+                    <span> {{CalculateTotalBaseAmount(item)|currency:"": 0}}</span>
+                    <div style="display:inline-block"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal()" /></div>
+                    <div style="display:inline"><input type="button" class="btn btn-danger" value="Fare Rules" ng-click="ShowFareRuleModal()" /></div>
+                </div>
+                <div class="col-lg-12" ng-repeat="p in  item.Packages" style="border:1px solid gray; border-radius:5px;">
+                    <div class="col-lg-2" ng-if="p.ConnectionID==0">
+                        <span class="fa fa-square" ng-click="ShowFaresModal(p.Fares)" style="color:green;cursor:pointer"></span>
+                        <span class="fa fa-circle" ng-click="ShowLegsModal(p.Legs)" style="color:green;cursor:pointer"></span>
+                         <span>{{p.TotalFareAmout |currency:"": 0}}</span>
+                    </div>
+                    <div class="col-lg-12" ng-if="p.ConnectionID==0" ng-repeat="l in p.Legs">
+
+                        <div class="col-lg-6" style="display:inline-block">
+                            <span>{{l.DepartureAirport}} -------> {{l.ArrivalAirport}}</span>
+                        </div>
+                        <div class="col-lg-6" style="display:inline">
+                            {{l.DepartureTime}} -------> {{l.ArrivalTime}}
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2" ng-if="p.ConnectionID==1">
+                        <span class="fa fa-square" ng-click="ShowFaresModal(p.Fares)" style="color:blue;cursor:pointer"></span>
+                        <span class="fa fa-circle" ng-click="ShowLegsModal(p.Legs)" style="color:blue;cursor:pointer"></span>
+                        <span>{{p.TotalFareAmout |currency:"": 0}}</span>
+                    </div>
+                    <div class="col-lg-12" ng-if="p.ConnectionID==1" ng-repeat="l in p.Legs">
+
+                        <div class="col-lg-6" style="display:inline-block">
+                            <span>{{l.DepartureAirport}} -------> {{l.ArrivalAirport}}</span>
+                        </div>
+                        <div class="col-lg-6" style="display:inline">
+                            {{l.DepartureTime}} -------> {{l.ArrivalTime}}
+                        </div>
+                    </div>
+
+                </div>
+                <br />
+            </div>
         </div>
     </form>
 
@@ -261,7 +302,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="ModalPriceDetail">
+    <div class="modal fade" id="ModalFares">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
 
@@ -781,7 +822,7 @@
                                 <b style="color:red">CurrencyCode: </b><span>{{item.CurrencyCode}}</span>
                             </div>
                             <div class="col-lg-12">
-                                <input type="button" class="btn btn-warning" value="Select" ng-if="item.Amount!=FinalPriceDetaill.TotalFareAmout"  ng-click="SelectFareFamily(item.Amount,item.FareFamilyPackageID)" />
+                                <input type="button" class="btn btn-warning" value="Select" ng-if="item.Amount!=FinalPriceDetaill.TotalFareAmout" ng-click="SelectFareFamily(item.Amount,item.FareFamilyPackageID)" />
                             </div>
 
                             <table class="table table-dark">
