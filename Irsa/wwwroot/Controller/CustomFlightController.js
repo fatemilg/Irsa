@@ -179,6 +179,8 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress, 
             }
             $scope.FlightResponse = JSON.parse(response.data.responseText);
             $scope.SearchID = $scope.FlightResponse[0].FlightSearchResponse.SearchID;
+            $scope.SearchType = $scope.FlightResponse[0].FlightSearchResponse.SearchType;;
+
             $scope.SearchPackageLists = $scope.FlightResponse[0].PackageLists;
 
             $scope.SelectedFlightIDList = [];
@@ -218,8 +220,14 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress, 
         $('#ModalFares').modal('show');
     };
 
-    $scope.ShowPriceDetailWithExtraServiceModal = function () {
+    $scope.ShowPriceDetailWithExtraServiceModal = function (_packages) {
+        $scope.SelectedFlightIDList = [];
+        angular.forEach(_packages, function (item, index) {
+            if (item != null) {
+                $scope.SelectedFlightIDList.push(item.FlightID);
 
+            }
+        });
         $scope.GetPriceDetailWithExtraService("");
         $scope.GetSeats();
         $scope.GetFareFamily();
@@ -271,21 +279,59 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress, 
     };
 
     $scope.GetPriceDetailWithExtraService = function (_FareFamilyID) {
-        var param = {
-            SearchID: $scope.SearchID,
-            SelectedFlightIDList: $scope.SelectedFlightIDList,
+
+        //One-Way
+        var rout1 = {
+            DepartureDate: $scope.formatDate($scope.flight.DepartureDate),
+            Origin: $scope.flight.Origin,
+            Destination: $scope.flight.Destination
+
+        }
+        $scope.AirItineraries.push(rout1);
+
+
+        //RoundTrip
+        if ($scope.flight.FlightType == "RoundTrip") {
+
+            var rout2 = {
+                DepartureDate: $scope.formatDate($scope.flight.ReturnDate),
+                Origin: $scope.flight.Destination,
+                Destination: $scope.flight.Origin,
+            }
+            $scope.AirItineraries.push(rout2);
+        }
+        //Multi
+        else if ($scope.flight.FlightType == "Multi") {
+            $scope.AirItineraries = $scope.MultiFlights;
+        }
+
+        angular.forEach($scope.AirItineraries, function (item, index) {
+            item.AllAirportsDestination = false;
+            item.AllAirportsOrigin = false;
+            item.ConnectionID = index;
+        });
+
+        var _TravelerAvail = {
             AdultCount: $scope.flight.AdultCount,
             ChildCount: $scope.flight.ChildCount,
-            InfantCount: $scope.flight.InfantCount,
-            FareFamilyID: _FareFamilyID
+            InfantCount: $scope.flight.InfantCount
+        }
+
+        var param = {
+            SearchID: $scope.SearchID,
+            FlightIDs: $scope.SelectedFlightIDList,
+            TravelerAvail: _TravelerAvail,
+            AirItineraries: $scope.AirItineraries,
+            FareFamilyID: _FareFamilyID,
+            SecurityGUID: $scope.SecurityToken
         };
 
         ngProgress.start();
         $http({
             method: 'POST',
             url: '/Home/GetPriceDetailWithExtraService',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            data: Object.toparams(param)
+            headers: { 'Content-Type': 'application/json' },
+            params: { obj: JSON.stringify(param) }
         }).then(function mySuccess(response) {
             if (response.data.success === false) {
                 alert(response.data.responseText);
@@ -524,27 +570,40 @@ app.controller('custom_flight_controller', function ($scope, $http, ngProgress, 
 
 
     $scope.CalculateTotalBaseAmount = function (_item) {
-        //angular.forEach(_item.Packages, function (value, key) {
-        //    if (value != null) {
-        //        if (value.PricingType === "PACKAGED") {
-        //            return value.TotalFareAmout;
-        //        }
-        //        else {
-        //            return _item.Packages[0].TotalFareAmout;
-        //        }
-        //    }
-
-        //});
-        if (_item.Packages[0].PricingType === "PACKAGED") {
+        if (_item.Packages[0].PricingType.toLowerCase() === "PACKAGED".toLowerCase()) {
 
             return _item.Packages[0].TotalFareAmout;
         }
-        else if (_item.Packages[0].PricingType === "FREE_FORM"){
-            var number1 = _item.Packages[0].TotalFareAmout
-            var number2 = _item.Packages[1].TotalFareAmout
-            return number1 + number2;
+        else if (_item.Packages[0].PricingType.toLowerCase() === "FREE_FORM".toLowerCase()) {
+            if (_item.Packages[1] == null) {
+                return _item.Packages[0].TotalFareAmout;
+            }
+            else {
+                var number1 = _item.Packages[0].TotalFareAmout
+                var number2 = _item.Packages[1].TotalFareAmout
+                return number1 + number2;
+            }
+
         }
     }
+
+    //$scope.SelectItemsInMulti = function (_ConnectionID, _PackageID, _PricingType, _ProviderCode) {
+
+    //    var list = ($scope.SearchPackageLists).filter(function (n) {
+    //        return n.Packages[2].ConnectionID === _ConnectionID + 1 &&
+    //            n.Packages[2].PackageID === _PackageID &&
+    //            n.Packages[2].PricingType === _PricingType &&
+    //            n.Packages[2].ProviderCode === _ProviderCode
+    //    });
+
+    //    if (list[0] !== undefined) {
+
+    //        $scope.SearchPackageLists = list;
+
+    //    }
+
+
+    //}
 
 
 });

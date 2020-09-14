@@ -5,7 +5,7 @@
 
 <div ng-controller="custom_flight_controller">
     <form id="FormFlight" name="FormFlight" novalidate>
-        <div class="row">
+        <div class="row" style="margin-bottom:20px">
             <div class="col-lg-12 col-md-12">
                 <input type="radio" ng-model="flight.FlightType" value="RoundTrip">RoundTrip
                 <input type="radio" ng-model="flight.FlightType" value="One-way">One-way
@@ -130,89 +130,19 @@
 
         </div>
 
-        <div class="row" style="margin-top:40px;margin-bottom:10px">
-            @*<div class="col-lg-2 col-md-2"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal()" /></div>
-                <div class="col-lg-10 col-md-10"><input type="button" class="btn btn-danger" value="Fare Rules" ng-click="ShowFareRuleModal()" /></div>*@
 
-
-            @*<div class="col-lg-3 col-md-3" style="color:red">CurrencyCode:<span style="color:black">{{FlightResponse.CurrencyCode}}</span></div>
-                <div class="col-lg-3 col-md-3" style="color:red">SearchTimeSeconds:<span style="color:black">{{FlightResponse.SearchTimeSeconds}}</span></div>
-                <div class="col-lg-3 col-md-3" style="color:red">SearchType:<span style="color:black"> {{FlightResponse.SearchType}}</span></div>*@
-        </div>
-        <div class="row">
-            @*<table class="table table-hover table-Padding">
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            <th>CabinClass</th>
-                            <th>
-                                Stops
-                            </th>
-                            <th>
-                                TotalFareAmout
-                                <a ng-click="setSortColumn('TotalFareAmout')">
-                                    <i class="fa fa-sort" style="padding-left:8px;font-size:16px;cursor:pointer"></i>
-                                </a>
-                            </th>
-                            <th ng-click="setSortColumn('ConnectionID')">
-                                ConnectionID
-                            </th>
-                            <th ng-click="setSortColumn('PackageID')">
-                                PackageID
-                            </th>
-                            <th>
-                                Pricing Type
-                            </th>
-                            <th>
-                                Provider
-                            </th>
-                            <th>Detail Price</th>
-                            <th>Detail Flight</th>
-
-
-
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr dir-paginate="item in FlightResponse.FlightItems.Flights |orderBy:orderProperty|itemsPerPage:50">
-                            <td>
-                                <input id="chkShow{{$index}}" type="checkbox" class="form-check-input" ng-model="item.Select" ng-change="SelectingFlight(item.Select,item.FlightID)">
-                            </td>
-                            <td>{{item.CabinClass}}</td>
-                            <td>{{item.Stops}}</td>
-                            <td>{{item.TotalFareAmout |currency:"": 0}}</td>
-                            <td>{{item.ConnectionID}}</td>
-                            <td>{{item.PackageID}}</td>
-                            <td>{{item.PricingType}}</td>
-                            <td>{{item.ProviderCode}}</td>
-                            <td>
-                                <span class="fa fa-list" style="cursor:pointer" ng-click="ShowPriceDetaillModal(item.Fares)">
-                                </span>
-                            </td>
-                            <td>
-                                <span class="fa fa-list" style="cursor:pointer" ng-click="ShowFlightDetaillModal(item)">
-                                </span>
-                            </td>
-                        </tr>
-
-                    </tbody>
-                </table>
-                <dir-pagination-controls max-size="5"
-                                         direction-links="true"
-                                         boundary-links="true">
-                </dir-pagination-controls>*@
-
+        <div class="row" ng-if="SearchType!='MULTIDESTINATION' ">
             <div class="col-lg-12" ng-repeat="item in SearchPackageLists">
                 <div style="margin-bottom:10px">
                     <span> {{CalculateTotalBaseAmount(item)|currency:"": 0}}</span>
-                    <div style="display:inline-block"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal()" /></div>
+                    <div style="display:inline-block"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal(item.Packages)" /></div>
                     <div style="display:inline"><input type="button" class="btn btn-danger" value="Fare Rules" ng-click="ShowFareRuleModal()" /></div>
                 </div>
-                <div class="col-lg-12" ng-repeat="p in  item.Packages" style="border:1px solid gray; border-radius:5px;">
+                <div class="col-lg-12" ng-repeat="p in  item.Packages track by $index" style="border:1px solid gray; border-radius:5px;">
                     <div class="col-lg-2" ng-if="p.ConnectionID==0">
                         <span class="fa fa-square" ng-click="ShowFaresModal(p.Fares)" style="color:green;cursor:pointer"></span>
                         <span class="fa fa-circle" ng-click="ShowLegsModal(p.Legs)" style="color:green;cursor:pointer"></span>
-                         <span>{{p.TotalFareAmout |currency:"": 0}}</span>
+                        <span>{{p.TotalFareAmout |currency:"": 0}}</span>
                     </div>
                     <div class="col-lg-12" ng-if="p.ConnectionID==0" ng-repeat="l in p.Legs">
 
@@ -243,116 +173,140 @@
                 <br />
             </div>
         </div>
-    </form>
+        <div class="row" ng-if="SearchType=='MULTIDESTINATION'">
+          <div class="col-lg-2 col-md-2"><input type="button" class="btn btn-warning" value="Purchase" ng-click="ShowPriceDetailWithExtraServiceModal()" /></div>
 
+                <div class="col-lg-12" ng-repeat="item in SearchPackageLists">
+                    <div class="col-lg-12" ng-repeat="p in  item.Packages  track by $index" ng-if="$index==2" style="border:1px solid gray; border-radius:5px;">
 
+                        <input id="chkShow{{$index}}" type="checkbox" class="form-check-input" ng-model="item.Select" ng-change="SelectingFlight(item.Select,p.FlightID)">
 
-    <!-- The Modal -->
-    <div class="modal fade" id="ModalLegs">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
+                        <span style="float:right;color:red">{{p.PackageID}}</span>
+                        <span style="color:green">{{p.PricingType}}</span>
+                        <span style="color:blue">{{p.ProviderCode}}</span>
 
-                <!-- Modal Header -->
-                <div class="modal-header">
-                    <h4 class="modal-title">Flight Detail</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-
-                <!-- Modal body -->
-                <div class="modal-body">
-                    <table class="table table-hover table-Padding">
-                        <thead>
-                            <tr>
-                                <th>FlightNumber</th>
-                                <th>DepartureAirport</th>
-                                <th>ArrivalAirport</th>
-                                <th>DepartureTime</th>
-                                <th>ArrivalTime</th>
-                                <th>FlightDurationMinutes</th>
-                                <th>SeatCount</th>
-                                <th>Bg_Amount</th>
-                                <th>Bg_Unit</th>
-
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr ng-repeat="item in Legs">
-
-                                <td>{{item.FlightNumber}}</td>
-                                <td>{{item.DepartureAirport}}</td>
-                                <td>{{item.ArrivalAirport}}</td>
-                                <td>{{item.DepartureTime}}</td>
-                                <td>{{item.ArrivalTime}}</td>
-                                <td>{{item.FlightDurationMinutes}}</td>
-                                <td>{{item.SeatCount}}</td>
-                                <td ng-bind="::GetBaggageAmount(item.BaggageItems[0].BaggageDetailID)"></td>
-                                <td ng-bind="::GetBaggageUnit(item.BaggageItems[0].BaggageDetailID)"></td>
-                            </tr>
-
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Modal footer -->
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <div ng-repeat="l in p.Legs">
+                            <div class="col-lg-6" style="display:inline-block">
+                                <span>{{l.DepartureAirport}} -------> {{l.ArrivalAirport}}</span>
+                            </div>
+                            <div class="col-lg-6" style="display:inline">
+                                {{l.DepartureTime}} -------> {{l.ArrivalTime}}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
+        </form>
+
+
+
+        <!-- The Modal -->
+        <div class="modal fade" id="ModalLegs">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <h4 class="modal-title">Flight Detail</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+
+                    <!-- Modal body -->
+                    <div class="modal-body">
+                        <table class="table table-hover table-Padding">
+                            <thead>
+                                <tr>
+                                    <th>FlightNumber</th>
+                                    <th>DepartureAirport</th>
+                                    <th>ArrivalAirport</th>
+                                    <th>DepartureTime</th>
+                                    <th>ArrivalTime</th>
+                                    <th>FlightDurationMinutes</th>
+                                    <th>SeatCount</th>
+                                    <th>Bg_Amount</th>
+                                    <th>Bg_Unit</th>
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="item in Legs">
+
+                                    <td>{{item.FlightNumber}}</td>
+                                    <td>{{item.DepartureAirport}}</td>
+                                    <td>{{item.ArrivalAirport}}</td>
+                                    <td>{{item.DepartureTime}}</td>
+                                    <td>{{item.ArrivalTime}}</td>
+                                    <td>{{item.FlightDurationMinutes}}</td>
+                                    <td>{{item.SeatCount}}</td>
+                                    <td ng-bind="::GetBaggageAmount(item.BaggageItems[0].BaggageDetailID)"></td>
+                                    <td ng-bind="::GetBaggageUnit(item.BaggageItems[0].BaggageDetailID)"></td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Modal footer -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="modal fade" id="ModalFares">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
+        <div class="modal fade" id="ModalFares">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
 
-                <!-- Modal Header -->
-                <div class="modal-header">
-                    <h4 class="modal-title">Price Detail</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <h4 class="modal-title">Price Detail</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
 
-                <!-- Modal body -->
-                <div class="modal-body">
-                    <table class="table table-hover table-Padding">
-                        <thead>
-                            <tr>
-                                <th>PassengerType</th>
-                                <th>Quantity</th>
-                                <th>BaseFare</th>
-                                <th>Tax</th>
-                                <th>ServiceCommission</th>
-                                <th>ServiceProviderCost</th>
-                                <th>ServiceFee</th>
-                                <th>APICost</th>
-                                <th>Commission</th>
-                                <th>Supplement</th>
-                                <th>Fuel</th>
-                                <th>Discount</th>
-                                @*<th>Total</th>*@
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr ng-repeat="item in Fares">
+                    <!-- Modal body -->
+                    <div class="modal-body">
+                        <table class="table table-hover table-Padding">
+                            <thead>
+                                <tr>
+                                    <th>PassengerType</th>
+                                    <th>Quantity</th>
+                                    <th>BaseFare</th>
+                                    <th>Tax</th>
+                                    <th>ServiceCommission</th>
+                                    <th>ServiceProviderCost</th>
+                                    <th>ServiceFee</th>
+                                    <th>APICost</th>
+                                    <th>Commission</th>
+                                    <th>Supplement</th>
+                                    <th>Fuel</th>
+                                    <th>Discount</th>
+                                    @*<th>Total</th>*@
+            </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="item in Fares">
 
-                                <td>{{item.PassengerType}}</td>
-                                <td>{{item.Quantity}}</td>
-                                <td>{{item.BaseFare|currency:"": 0}}</td>
-                                <td>{{item.Tax|currency:"": 0}}</td>
-                                <td>{{item.ServiceCommission|currency:"": 0}}</td>
-                                <td>{{item.ServiceProviderCost|currency:"": 0}}</td>
-                                <td>{{item.ServiceFee|currency:"": 0}}</td>
-                                <td>{{item.APICost|currency:"": 0}}</td>
-                                <td>{{item.Commission|currency:"": 0}}</td>
-                                <td>{{item.Supplement|currency:"": 0}}</td>
-                                <td>{{item.Fuel|currency:"": 0}}</td>
-                                <td>{{item.Discount|currency:"": 0}}</td>
-                                @*<td>{{item.BaseFare + item.Tax + item.ServiceCommission + item.ServiceProviderCost + item.ServiceFee + item.APICost + item.Commission + item.Supplement + item.Fuel + item.Discount |currency:"": 0}}</td>*@
-                            </tr>
+                    <td>{{item.PassengerType}}</td>
+                    <td>{{item.Quantity}}</td>
+                    <td>{{item.BaseFare|currency:"": 0}}</td>
+                    <td>{{item.Tax|currency:"": 0}}</td>
+                    <td>{{item.ServiceCommission|currency:"": 0}}</td>
+                    <td>{{item.ServiceProviderCost|currency:"": 0}}</td>
+                    <td>{{item.ServiceFee|currency:"": 0}}</td>
+                    <td>{{item.APICost|currency:"": 0}}</td>
+                    <td>{{item.Commission|currency:"": 0}}</td>
+                    <td>{{item.Supplement|currency:"": 0}}</td>
+                    <td>{{item.Fuel|currency:"": 0}}</td>
+                    <td>{{item.Discount|currency:"": 0}}</td>
+                    @*<td>{{item.BaseFare + item.Tax + item.ServiceCommission + item.ServiceProviderCost + item.ServiceFee + item.APICost + item.Commission + item.Supplement + item.Fuel + item.Discount |currency:"": 0}}</td>*@
+                </tr>
 
-                        </tbody>
-                    </table>
-                </div>
+            </tbody>
+            </table>
+        </div>
 
                 <!-- Modal footer -->
                 <div class="modal-footer">
@@ -855,6 +809,8 @@
 
         </div>
     </div>
+
+
 </div>
 
 

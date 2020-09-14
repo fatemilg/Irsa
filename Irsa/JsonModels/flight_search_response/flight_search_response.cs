@@ -106,5 +106,6 @@ namespace Irsa.JsonModels.flight_search_response
     {
         public Flights ZeroConnection { get; set; }
         public Flights OneConnection { get; set; }
+        public Flights MultiConnection { get; set; }
     }
 }
